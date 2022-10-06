@@ -3,40 +3,33 @@ using System.Diagnostics.Tracing;
 using System.Runtime.InteropServices;
 using System.Text;
 using Timed_Theme;
-
-Console.WriteLine("Hello, World!");
-
 // themes loc: C:\Users\{user}\AppData\Roaming\Microsoft\Windows\Themes
 
 DateTime nightMode = new DateTime();
 DateTime dayMode = nightMode;
+if(!isWin11())
+	Environment.Exit(ErrorCodes.ERROR_NOT_SUPPORTED); //50
 
-bool isWin11()
+
+
+var themes = getThemes();
+
+if(getMode() == 1)
 {
-	OperatingSystem os = Environment.OSVersion;
-	PlatformID pid = os.Platform;
-	int ver = os.Version.Major;
-	//print all vars in one line
-	Console.WriteLine("OS: {0}\nPlatform: {1}\nVersion: {2}", os, pid, ver);
-	//check for Windows 10+
-	if(pid == PlatformID.Win32NT && ver >= 10)
-	{
-		Console.WriteLine("Windows 10 or higher detected");
-		return true;
-	}
-	else
-	{
-		Console.WriteLine("Windows 10 or higher not detected");
-		Console.WriteLine("This program only works on Windows 10 or higher");
-		return false;
-	}
+	Console.WriteLine("Time mode selected");
+	var time = setTime();
+	Console.WriteLine("Night mode set to {0}", time);
+
+	Console.WriteLine("Select which theme to be used for night (mode): ");
+	switchTheme(themes);
+}
+else
+{
+	Console.WriteLine("Event mode selected");
 }
 
-if(!isWin11())
-	//	ERROR_NOT_SUPPORTED
-	//The request is not supported.
-	Environment.Exit(0x32); //50
 
+#region Functions
 int getMode()
 {
 	Console.WriteLine("Would you like to change theme by time or event?");
@@ -61,25 +54,27 @@ int getMode()
 		return getMode();
 	}
 }
-
-var themes = getThemes();
-
-if(getMode() == 1)
+bool isWin11()
 {
-	Console.WriteLine("Time mode selected");
-	var time = setTime();
-	Console.WriteLine("Night mode set to {0}", time);
-
-	Console.WriteLine("Select which theme to be used for night (mode): ");
-	switchTheme(themes);
+	OperatingSystem os = Environment.OSVersion;
+	PlatformID pid = os.Platform;
+	int ver = os.Version.Major;
+	//print all vars in one line
+	Console.WriteLine("OS: {0}\nPlatform: {1}\nVersion: {2}", os, pid, ver);
+	//check for Windows 10+
+	if(pid == PlatformID.Win32NT && ver >= 10)
+	{
+		Console.WriteLine("Windows 10 or higher detected");
+		return true;
+	}
+	else
+	{
+		Console.WriteLine("Windows 10 or higher not detected");
+		Console.WriteLine("This program only works on Windows 10 or higher");
+		return false;
+	}
 }
-else
-{
-	Console.WriteLine("Event mode selected");
-}
 
-
-#region Functions
 
 List<String> getThemes()
 {
@@ -151,9 +146,9 @@ void toggleTime()
 	Console.BackgroundColor = ConsoleColor.Green;
 	Console.ForegroundColor = ConsoleColor.White;
 
-	TimeOnly time = TimeOnly.MinValue;
-	Console.WriteLine(time.ToString("HH:mm"));
-	
+	Clock clock = new Clock();
+	Console.WriteLine(clock.ToString("HH:mm"));
+
 
 	var key = Console.ReadKey();
 	while(key.Key != ConsoleKey.Enter)
@@ -164,7 +159,7 @@ void toggleTime()
 			switch(key.Key)
 			{
 				case ConsoleKey.UpArrow:
-					time = time.AddMinutes(1);
+					clock = clock.AddMinutes(1);
 					break;
 				default:
 					break;

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Timed_Theme
 {
+
 	internal class Clock
 	{
 		private TimeOnly _time = TimeOnly.MinValue;
@@ -15,30 +16,54 @@ namespace Timed_Theme
 		public int tickInterval { get; set; }//make setter
 		public class TickEventArgs : EventArgs
 		{
-			public int interval;
+			readonly public int interval;
 		}
 
-
+		public EventHandler<ChangeEventArgs>? OnChangeHandler { get; set; }
+		protected virtual void OnChange(TimeOnly old) => OnChangeHandler?.Invoke(this, generateChangeEventArgs(old));
 		TimeOnly Time
 		{
 			get { return _time; }
 			set
 			{
+				var prev = _time;
 				_time = value;
-				OnTick?.Invoke(value, generateTickEventArgs());
+				OnChange(prev);
 			}
 		}
 
-		public Clock() { };
+		public Clock() { }
 
 		public Clock(String time)
 		{
 			Time = TimeOnly.Parse(time);
 		}
 
-		public start() { }
-		public stop() { }
+		//todo add increment and decrement methods
+		public void start() { }
+		public void stop() { }
 
-		TickEventArgs generateTickEventArgs() { }
+		TickEventArgs generateTickEventArgs()
+		{
+			return new TickEventArgs();
+		}
+		ChangeEventArgs generateChangeEventArgs(TimeOnly prevTime)
+		{
+			return new ChangeEventArgs(prevTime, Time);
+		}
+
+		public class ChangeEventArgs : EventArgs
+		{
+			public readonly TimeOnly oldTime;
+			readonly public TimeSpan diff;
+			public readonly TimeOnly newTime;
+
+			public ChangeEventArgs(TimeOnly oldTime, TimeOnly newTime)
+			{
+				this.oldTime = oldTime;
+				this.newTime = newTime;
+				diff = newTime - oldTime;
+			}
+		}
 	}
 }
