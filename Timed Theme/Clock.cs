@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Timed_Theme
+﻿namespace Timed_Theme
 {
-
 	internal class Clock
 	{
 		private TimeOnly _time = TimeOnly.MinValue;
@@ -42,7 +35,7 @@ namespace Timed_Theme
 
 		#region Constructors
 		public Clock() { }
-		
+
 		public Clock(String time)
 		{
 			Time = TimeOnly.Parse(time);
@@ -50,19 +43,21 @@ namespace Timed_Theme
 
 		public Clock(int hour, int minute, int second)
 		{
-			Time = new (hour, minute, second);
+			Time = new(hour, minute, second);
 		}
 
-		public Clock(int hour, int minute) {
+		public Clock(int hour, int minute)
+		{
 			Time = new TimeOnly(hour, minute);
 		}
 
-		public Clock(long ticks) {
+		public Clock(long ticks)
+		{
 			Time = new TimeOnly(ticks);
 		}
-		
+
 		#endregion
-		
+
 		#region increment
 		public int increment(int span, ClockUnit unit)
 		{
@@ -139,11 +134,13 @@ namespace Timed_Theme
 			return Time.ToLongTimeString();
 		}
 		#endregion
-		
-		public void start() {
-			timer = new(OnTick,null,0, TickInterval*1000);
+
+		public void start()
+		{
+			timer = new(OnTick, null, 0, TickInterval * 1000);
 		}
-		public void stop() {
+		public void stop()
+		{
 			timer.Change(Timeout.Infinite, Timeout.Infinite);
 			timer.Dispose();
 		}
