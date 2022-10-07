@@ -1,12 +1,15 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Diagnostics.Tracing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Timed_Theme;
-// themes loc: C:\Users\{user}\AppData\Roaming\Microsoft\Windows\Themes
+using static Timed_Theme.Clock;
+// todo improve prompts to be entered on the same line, make it a claasss?
 
 DateTime nightMode = new DateTime();
 DateTime dayMode = nightMode;
+
 if(!isWin11())
 	Environment.Exit(ErrorCodes.ERROR_NOT_SUPPORTED); //50
 
@@ -17,11 +20,11 @@ var themes = getThemes();
 if(getMode() == 1)
 {
 	Console.WriteLine("Time mode selected");
-	var time = setTime();
+	TimeOnly time = setTime();
 	Console.WriteLine("Night mode set to {0}", time);
-
+	Console.WriteLine();
 	Console.WriteLine("Select which theme to be used for night (mode): ");
-	switchTheme(themes);
+	setTheme(themes);
 }
 else
 {
@@ -54,6 +57,7 @@ int getMode()
 		return getMode();
 	}
 }
+
 bool isWin11()
 {
 	OperatingSystem os = Environment.OSVersion;
@@ -81,14 +85,50 @@ List<String> getThemes()
 	string user = Environment.UserName;
 	string path = $"C:\\Users\\{user}\\AppData\\Local\\Microsoft\\Windows\\Themes";
 	var files = Directory.GetFiles(path);
-	Console.WriteLine(string.Join("\n", files));
-	return files.ToList();
+	var dir = Directory.GetDirectories(path);
+	var list = files.ToList();
+	list.AddRange(dir);
+	List<String> themes = new List<string>();
+	list.ForEach(path =>
+	{
+		var pathList = path.Split("\\", StringSplitOptions.RemoveEmptyEntries);
+		var name = pathList[^1].Split(".", 1)[0];
+		themes.Add(name);
+	});
+	return themes;
 }
 
-void switchTheme(List<string> themes)
+string setTheme(List<string> themes)
 {
-	int i = 0;
+	var theme = getThemeInput(themes);
+	return Path.GetRandomFileName();
+}
+
+string getThemeInput(List<string> themes)
+{
+	int i = 1;
 	themes.ForEach(theme => Console.WriteLine($"({i++}). {theme}"));
+	Console.WriteLine();
+	Console.Write("Select a theme by entering its numbered position: ");
+	var select = Console.ReadLine();
+	int index;
+	var isNum = int.TryParse(select, out index);
+	if(isNum && themes.Count > --index)
+	{
+		Console.Write($"Confirm {themes[index]} as night theme? (y/N): ");
+		var correct = Console.ReadLine();
+		Console.WriteLine();
+		if(correct != null && correct.Equals("y", StringComparison.OrdinalIgnoreCase))
+			return themes[index];
+		else
+			return getThemeInput(themes);
+	}
+	else
+	{
+		Console.WriteLine("Invalid number, out of range input number between 1 - {0}", themes.Count);
+		Console.WriteLine();
+		return getThemeInput(themes);
+	}
 }
 
 string GetThemeName()
@@ -100,79 +140,63 @@ string GetThemeName()
 	return themeNameBuffer.ToString();
 }
 
-DateTime setTime()
+TimeOnly setTime()
 {
-	DateTime night = DateTime.MinValue;
 	Console.WriteLine("Enter the time you want to change to night mode (hh:mm:ss): ");
-	toggleTime();
-	string? time = Console.ReadLine();
-	if(time == null)
-	{
-		Console.WriteLine("Invalid time, try again(y/N): ");
-		string? retry = Console.ReadLine();
-		if(retry == null)
-			Environment.Exit(0x16); //22
-		else if(retry.Equals("y", StringComparison.OrdinalIgnoreCase))
-			setTime();
-		else
-		{
-			Console.WriteLine("Exiting...");
-			Environment.Exit(0); //22
-		}
-	}
-	else
-	{
-		try
-		{
-			night = DateTime.Parse(time);
-		}
-		catch(FormatException e)
-		{
-			Console.WriteLine("Invalid format, please try again.");
-			Console.WriteLine(e.Message);
-			night = setTime();
-		}
-	}
-	Console.WriteLine($"Is {night} the correct time for dark mode to be activated? (y/N): ");
-	var correct = Console.ReadLine();
+	TimeOnly night = inputTime();
+	Console.WriteLine($"Is {night.ToString("HH:mm")} ({night}) the correct time for dark mode to be activated? (y/N): ");
+	string? correct = Console.ReadLine();
 	if(correct != null && correct.Equals("y", StringComparison.OrdinalIgnoreCase))
 		return night;
 	else
 		return setTime();
 }
 
-void toggleTime()
+void toggleTime(object? sender, ChangeEventArgs e)
 {
-	Console.BackgroundColor = ConsoleColor.Green;
-	Console.ForegroundColor = ConsoleColor.White;
+	string time = e.newTime.ToString("HH:mm");
+	Console.CursorLeft = Console.WindowWidth / 2 - time.Length;
+	Console.Write(time);
+	Console.CursorLeft -= time.Length - 2;
+}
 
+TimeOnly inputTime()
+{
+	Console.ForegroundColor = ConsoleColor.Cyan;
 	Clock clock = new Clock();
-	Console.WriteLine(clock.ToString("HH:mm"));
+	EventHandler<ChangeEventArgs> changeConsoleTime = toggleTime;
+	clock.OnChangeHandler += changeConsoleTime;
 
-
-	var key = Console.ReadKey();
+	ConsoleKeyInfo key = new ConsoleKeyInfo();
 	while(key.Key != ConsoleKey.Enter)
 	{
-		try
+		switch(key.Key)
 		{
-			key = Console.ReadKey(true);
-			switch(key.Key)
-			{
-				case ConsoleKey.UpArrow:
-					clock = clock.AddMinutes(1);
-					break;
-				default:
-					break;
-			}
-
+			case ConsoleKey.UpArrow:
+				clock.increment(1, ClockUnit.Minutes);
+				break;
+			case ConsoleKey.DownArrow:
+				clock.increment(-1, ClockUnit.Minutes);
+				break;
+			case ConsoleKey.LeftArrow:
+				clock.increment(-1, ClockUnit.Hours);
+				break;
+			case ConsoleKey.RightArrow:
+				clock.increment(1, ClockUnit.Hours);
+				break;
+			default:
+				Console.ForegroundColor = ConsoleColor.Red;
+				Console.CursorTop--;
+				Console.CursorLeft = 0;
+				Console.WriteLine("Please use the up and down arrows to adjust the hour, and the left and right arrows to adjust the minute.");
+				Console.ForegroundColor = ConsoleColor.Cyan;
+				break;
 		}
-		catch(Exception e)
-		{
-			Console.Error.WriteLine(e.Message);
-			throw e;
-		}
-
+		key = Console.ReadKey(true);
 	}
+	Console.WriteLine();
+	Console.ResetColor();
+	return clock.Time;
 }
 
 /// Schedule the given action for the given time.
