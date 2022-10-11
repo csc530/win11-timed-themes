@@ -6,7 +6,7 @@ namespace Timed_Theme
 	/// <summary>
 	/// The theme schedule.
 	/// </summary>
-	internal new class ThemeSchedule
+	internal class ThemeSchedule
 	{
 		private readonly TimeSpan _daySpan = TimeSpan.FromDays(1);
 		readonly private Dictionary<TimeOnly, Theme> _themes;
@@ -204,12 +204,18 @@ namespace Timed_Theme
 			RemoveLast
 		}
 
-		public override string ToString()
+		public string Print(bool withNames = false)
 		{
 			var sb = new StringBuilder();
 			foreach(var theme in _themes)
-				sb.AppendLine($"{theme.Key} @ {theme.Value}");
-			return sb.ToString().TrimEnd();
+			{
+				if(withNames)
+					sb.AppendLine($"[[{theme.Value.Name}]]");
+				sb.Append(theme.Value.Path);
+				sb.Append(" @ ");
+				sb.AppendLine(theme.Key.ToString());
+			}
+			return sb.ToString();
 		}
 
 	}
