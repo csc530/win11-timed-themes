@@ -3,7 +3,7 @@
 	internal class Clock
 	{
 		private TimeOnly _time = TimeOnly.MinValue;
-		private Timer timer;
+		private Timer _timer;
 
 		public event EventHandler<TickEventArgs>? OnTickHandler;
 		// * made it compatible with TimerCallback
@@ -24,7 +24,7 @@
 		protected virtual void OnChange(TimeOnly old) => OnChangeHandler?.Invoke(this, generateChangeEventArgs(old));
 		public TimeOnly Time
 		{
-			get { return _time; }
+			get => _time;
 			set
 			{
 				TimeOnly prev = _time;
@@ -34,9 +34,13 @@
 		}
 
 		#region Constructors
-		public Clock() { }
 
-		public Clock(String time)
+		public Clock()
+		{
+			_timer = new(OnTick, null, Timeout.Infinite, Timeout.Infinite);
+		}
+
+		public Clock(String time) : this()
 		{
 			Time = TimeOnly.Parse(time);
 		}
@@ -137,12 +141,12 @@
 
 		public void start()
 		{
-			timer = new(OnTick, null, 0, TickInterval * 1000);
+			_timer = new(OnTick, null, 0, TickInterval * 1000);
 		}
 		public void stop()
 		{
-			timer.Change(Timeout.Infinite, Timeout.Infinite);
-			timer.Dispose();
+			_timer.Change(Timeout.Infinite, Timeout.Infinite);
+			_timer.Dispose();
 		}
 
 		TickEventArgs generateTickEventArgs()
