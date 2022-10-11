@@ -3,12 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Timed Theme", "Timed Theme\Timed Theme.csproj", "{D93C7B61-5399-4F3C-9F02-00C1528FD19D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Timed Theme", "Timed Theme\Timed Theme.csproj", "{D93C7B61-5399-4F3C-9F02-00C1528FD19D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+		Description = A CLI app to set a day and night theme/wallpaper for Windows
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D93C7B61-5399-4F3C-9F02-00C1528FD19D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
