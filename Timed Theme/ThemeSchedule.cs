@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata;
-using System.Text;
+﻿using System.Text;
 
 namespace Timed_Theme
 {
@@ -191,7 +190,7 @@ namespace Timed_Theme
 		/// <returns>A Dictionary of times and its associated theme.</returns>
 		public Dictionary<TimeOnly, Theme> GetThemes()
 		{
-			return new Dictionary<TimeOnly,Theme>(_themes);
+			return new Dictionary<TimeOnly, Theme>(_themes);
 		}
 
 		/// <summary>

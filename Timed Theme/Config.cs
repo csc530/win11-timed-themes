@@ -8,49 +8,118 @@ internal class Config
 {
 	public static readonly string ThemesPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Microsoft\\Windows\\Themes";
 	public static readonly string ConfigFilePath = ThemesPath + "\\config.csc";
-	public List<ThemeSchedule> ThemeConfigurations { get; private set; } = new();
+	public ThemeSchedule ThemeConfigurations { get; }
+
+	public Config()
+	{
+		ThemeConfigurations = ThemeSchedule.fromFile(ConfigFilePath);
+	}
 
 	// todo improve prompts to be entered on the same line, make it a claasss?
 	/// <summary>
 	/// Runs the configuration prompts to setup times and themes for the app
 	/// </summary>
-	public void Configurate()
+	public void Configure()
 	{
 		if(!IsWin11())
-			Exit(ErrorCodes.ErrorNotSupported);
-
-		// todo: make it lazy load ie Task
-		var themes = GetUsersThemes();
-
+			throw new PlatformNotSupportedException("This app is only supported on Windows 11 and 10.");
 		if(true)
 		{
-
-			// night time and duration
-			Console.WriteLine("Time mode selected");
-			var nightTime = SetTime();
-			Console.WriteLine("Night time set to {0}", nightTime);
-			Console.WriteLine();
-			// day time and duration
-			var dayTime = SetTime();
-			Console.WriteLine("Day time set to {0}", dayTime);
-			Console.WriteLine();
-
-			// night theme
-			Console.WriteLine("Select which theme to be used for night (mode): ");
-			var nightTheme = GetThemeInput(themes);
-			Console.WriteLine();
-			Console.WriteLine("Select which theme to be used for day (mode): ");
-			// day theme
-			var dayTheme = GetThemeInput(themes);
-			SaveTheme(nightTheme, nightTime, dayTheme, dayTime);
-			Console.WriteLine("Theme settings saved.");
-			Console.WriteLine();
+			Console.WriteLine("How many themes would you like to set:");
+			Console.WriteLine("1. Day and night (2 themes)");
+			Console.WriteLine("2. Custom (n# of themes)");
+			Console.WriteLine("3. Exit");
+			Console.Write("Enter your choice: ");
+			string? choice = Console.ReadLine();
+			switch(choice)
+			{
+				case "1":
+					ConfigThemes(2);
+					break;
+				case "2":
+					Console.WriteLine("How many themes would you like to set? ");
+					var input = Console.ReadLine();
+					int n;
+					while(!int.TryParse(input, out n))
+					{
+						//todo go back and add only not newlining
+						Console.WriteLine("Invalid entry\n");
+						Console.WriteLine("How many themes would you like to set?");
+						Console.WriteLine("Please enter a number: ");
+						input = Console.ReadLine();
+					}
+					ConfigThemes(n);
+					break;
+				case "3":
+					throw new OperationCanceledException("User canceled configuration");
+					break;
+				case null:
+					throw ErrorCodes.ErrorBadCommand();
+					break;
+				default:
+					//todo: somesort of try again loop
+					throw new NotImplementedException();
+					break;
+			}
+			SaveThemeSettings();
 			Exit(ErrorCodes.None);
 		}
 		else
 		{
 			Console.WriteLine("Event mode selected");
 		}
+	}
+
+	/// <summary>
+	/// Runs the configuration dialog for to setup the themes schedule
+	/// </summary>
+	/// <param name="themeQty">The number of themes to setup in the schedule</param>
+	private void ConfigThemes(int themeQty)
+	{
+		//? dictionary of themes = <fullpath,filename>
+		var themes = GetUsersThemes(true)
+			.Zip(GetUsersThemes(false))
+			.ToDictionary(tuple => tuple.First, tuple => tuple.Second);
+
+		for(int i = 0; i < themeQty; i++)
+		{
+			var themeMode = themeQty == 2 ?
+				//if there are 2 themes; select for 'day' then 'night'
+				i == 0 ? "day theme" : "night theme"
+				//else show which theme number they're now setting for
+				: $"theme {i + 1}";
+			var name = SetName();
+			var time = SetTime(themeMode);
+			Console.WriteLine("{1} time set to {0}", time, themeMode);
+			Console.WriteLine("Select which theme to be used for {0}: ", themeMode);
+			var themeName = GetThemeInput(themes.Values.ToList());
+			var themePath = themes.First(x => x.Value == themeName).Key;
+			ThemeConfigurations.Add(time, themePath, name, false);
+		}
+	}
+
+	/// <summary>
+	/// Runs dialog to set the name for a theme
+	/// </summary>
+	/// <returns>entered name, or null if no name is specified</returns>
+	private string? SetName()
+	{
+		Console.WriteLine("Would you like to set a name for this theme (Y/n)? ");
+		var continueNaming = Console.ReadLine();
+		if(continueNaming == null || !continueNaming.Equals("n", StringComparison.OrdinalIgnoreCase) || !continueNaming.Equals("no", StringComparison.OrdinalIgnoreCase))
+		{
+			string? name = string.Empty;
+			while(string.IsNullOrWhiteSpace(name))
+			{
+				Console.WriteLine("Theme name: ");
+				name = Console.ReadLine();
+				if(string.IsNullOrWhiteSpace(name))
+					Console.WriteLine("Invalid name");
+			}
+			return name.Trim();
+		}
+		else
+			return null;
 	}
 
 	/// <summary>
@@ -61,15 +130,14 @@ internal class Config
 	/// <param name="dayTheme">The day theme.</param>
 	/// <param name="dayTime">The day time switch to the day theme.</param>
 	/// <returns>If the config file was successfully saved to the system</returns>
-	private static bool SaveTheme(string nightTheme, TimeOnly nightTime, string dayTheme, TimeOnly dayTime)
+	private bool SaveThemeSettings()
 	{
 		try
 		{
-			var settings = File.CreateText($"{ThemesPath}\\theme.csc");
-			settings.WriteLine($"night={nightTheme}");
-			settings.WriteLine($"night-time={nightTime.ToString("HH:mm")}");
-			settings.WriteLine($"day={dayTheme}");
-			settings.WriteLine($"day-time={dayTime.ToString("HH:mm")}");
+			var settings = File.CreateText(ConfigFilePath);
+			settings.AutoFlush = true;
+			var configSettings = ThemeConfigurations.Print(true);
+			settings.Write(configSettings);
 			settings.Flush();
 			settings.Close();
 			return true;
@@ -108,33 +176,6 @@ internal class Config
 		return code;
 	}
 
-	private int GetThemeSwitchMode()
-	{
-		Console.WriteLine("Would you like to change theme by time or event?");
-		Console.WriteLine("1. Time");
-		Console.WriteLine("2. Event");
-		Console.Write("Enter your choice: ");
-
-		var choice = Console.ReadLine();
-		if(choice == null)
-			return Exit(ErrorCodes.ErrorBadCommand);
-		else if(choice == "1" || choice.Equals("time", StringComparison.OrdinalIgnoreCase) ||
-			choice.Equals("t", StringComparison.OrdinalIgnoreCase))
-			return 1;
-
-		else if(choice == "2" || choice.Equals("event", StringComparison.OrdinalIgnoreCase) ||
-			choice.Equals("e", StringComparison.OrdinalIgnoreCase))
-		{
-			return 2;
-		}
-		else
-		{
-			Console.WriteLine("Invalid choice, try again");
-			// * pretty comfortable recursing as it will be a stuupid # of times before a stackoverflows occurs
-			return GetThemeSwitchMode();
-		}
-	}
-
 	/// <summary>
 	/// Check if the system is compatible with the AutoThemeSwitcher app
 	/// </summary>
@@ -160,31 +201,13 @@ internal class Config
 	}
 
 
-	/// <summary>
-	/// Gets the user's themes.
-	/// </summary>
-	/// <returns>A list of the themes' names.</returns>
-	private static List<string> GetUsersThemes()
-	{
-		var files = Directory.GetFiles(ThemesPath);
-		var dir = Directory.GetDirectories(ThemesPath);
-		var rawThemes = files.ToList();
-		rawThemes.AddRange(dir);
-		var themes = new List<string>();
-		rawThemes.ForEach(path =>
-		{
-			var pathList = path.Split("\\", StringSplitOptions.RemoveEmptyEntries);
-			var name = pathList[^1].Split(".", 1)[0];
-			themes.Add(name);
-		});
-		return themes;
-	}
+
 
 	/// <summary>
 	/// Gets the theme selection from user.
 	/// </summary>
 	/// <param name="themes">The themes to offer.</param>
-	/// <returns>The selected theme.</returns>
+	/// <returns>The selected theme's index.</returns>
 	private string GetThemeInput(List<string> themes)
 	{
 		var i = 1;
@@ -196,7 +219,6 @@ internal class Config
 		if(isNum && themes.Count > --index)
 		{
 			//todo: add input for specific theme text and make a prompt/console wrinting class
-			//! utilities include same line writing, prompt, alignments
 			Console.Write($"Set {themes[index]} as theme? (y/N): ");
 			var confirm = Console.ReadLine();
 			Console.WriteLine();
@@ -217,21 +239,22 @@ internal class Config
 	/// Gets the time time to set for a theme from user.
 	/// </summary>
 	/// <returns>The selected time.</returns>
-	private static TimeOnly SetTime()
+	private static TimeOnly SetTime(string themeMode)
 	{
-		Console.WriteLine("Enter the time you want to change to night mode (hh:mm:ss): ");
+		Console.WriteLine($"Enter the time you want to change to {themeMode} (hh:mm:ss): ");
 		var time = InputTime();
-		Console.WriteLine($"Is {time.ToString("HH:mm")} ({time}) the correct time for dark mode to be activated? (y/N): ");
+		Console.WriteLine($"Is {time.ToString("HH:mm")} ({time}) the correct time for {themeMode} to be activated? (y/N): ");
 		var confirm = Console.ReadLine();
+		//todo: add yes option in 'if'
 		if(confirm != null && confirm.Equals("y", StringComparison.OrdinalIgnoreCase))
 			return time;
-		return SetTime();
+		return SetTime(themeMode);
 	}
 
 	/// <summary>
 	/// Console logic to change the displayed time.
 	/// </summary>
-	private static readonly EventHandler<ChangeEventArgs> ToggleTime = (object? sender, ChangeEventArgs e) =>
+	private static readonly EventHandler<ChangeEventArgs> ToggleTime = (_, e) =>
 	{
 		var time = e.newTime.ToString("HH:mm");
 		//back to the beginning
@@ -250,7 +273,8 @@ internal class Config
 		Console.ForegroundColor = ConsoleColor.Cyan;
 		var clock = new Clock();
 		clock.OnChangeHandler += ToggleTime;
-
+		//? print initial time to console
+		ToggleTime(null, new(clock.Time, clock.Time));
 		var key = new ConsoleKeyInfo();
 		while(key.Key != ConsoleKey.Enter)
 		{
@@ -288,44 +312,24 @@ internal class Config
 	/// </summary>
 	/// <returns>A list of the themes' paths.</returns>
 	/// <remarks>Themes are stored in the user's AppData folder.</remarks>
-	internal static List<string> GetUsersThemePaths()
+	internal static List<string> GetUsersThemes(bool fullPath = true)
 	{
-		var files = Directory.GetFiles(ThemesPath);
 		var dir = Directory.GetDirectories(ThemesPath);
-		var rawThemes = files.ToList();
-		rawThemes.AddRange(dir);
 		List<string> themes = new List<string>();
 		Array.ForEach(dir, directory =>
 		{
 			var theme = new DirectoryInfo(directory).GetFiles("*.theme", SearchOption.TopDirectoryOnly);
-			themes.Add(theme[0].FullName);
+			themes.Add(fullPath ? theme[0].FullName : theme[0].Name);
 		});
-		return themes as List<string>;
-	}
-
-	/// <summary>
-	/// Gets current theme configurations
-	/// </summary>
-	/// <returns>Dictionary of each theme and their set times.</returns>
-	/// <remarks>Themes are stored in the user's AppData folder.</remarks>
-	internal static Dictionary<string, TimeOnly> GetThemeConfigurations()
-	{
-		if(!isConfigured())
-			throw new FileNotFoundException("No configuration found for application.");
-		var config = File.ReadAllLines(ConfigFilePath).ToList();
-		var themeTimes = new Dictionary<string, TimeOnly>();
-		foreach(var theme in config)
-		{
-			if(!theme.StartsWith("[["))
+		foreach(string file in Directory.GetFiles(ThemesPath, "*.theme"))
+			if(fullPath)
+				themes.Add(file);
+			else
 			{
-				var split = theme.Split("=");
-				var time = split[1];
-				var themePath = split[0];
-				themeTimes.Add(themePath, TimeOnly.Parse(time));
+				var path = file.Split("\\", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+				themes.Add(path.Length > 0 ? path[^1] : file);
 			}
-
-		}
-		return themeTimes;
+		return themes;
 	}
 
 	private static bool isConfigured()
