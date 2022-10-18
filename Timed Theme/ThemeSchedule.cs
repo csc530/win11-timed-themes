@@ -15,6 +15,13 @@ internal readonly struct Theme : IEquatable<Theme>
         Path = path;
     }
 
+    public override string ToString() => $"{Name}: ({Path})";
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name, Path);
+    }
+
     public string Name { get; init; }
     public string Path { get; init; }
 
@@ -44,7 +51,6 @@ internal readonly struct Theme : IEquatable<Theme>
 /// </summary>
 internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
 {
-    private static readonly TimeSpan DaySpan = TimeSpan.FromDays(1);
     public readonly Dictionary<TimeOnly, Theme> Themes;
 
     public ThemeSchedule(ICollection<TimeOnly> keys, ICollection<Theme> values)
@@ -127,11 +133,12 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     {
         if (array.Length - arrayIndex < Themes.Count)
             throw new ArgumentException("The array is too small to copy the themes to.");
-        if (arrayIndex < 0)
+        else if (arrayIndex < 0)
             throw new ArgumentException("The array index cannot be negative.");
-        if (arrayIndex >= array.Length) throw new ArgumentException("The array index is too large.");
-        for (var i = arrayIndex; i < array.Length; i++)
-            array[i] = new KeyValuePair<TimeOnly, Theme>(Keys.ElementAt(i), Values.ElementAt(i));
+        else if (arrayIndex >= array.Length) throw new ArgumentException("The array index is too large.");
+        else
+            for (var i = arrayIndex; i < array.Length; i++)
+                array[i] = new KeyValuePair<TimeOnly, Theme>(Keys.ElementAt(i), Values.ElementAt(i));
     }
 
     public bool Remove(KeyValuePair<TimeOnly, Theme> item)
@@ -149,7 +156,9 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     public static ThemeSchedule Parse(string text)
     {
         var obj = new ThemeSchedule();
-        obj.PerfectParse(text);
+        if (!obj.PerfectParse(text))
+            return obj;
+        //throw new ArgumentException("The string is not in the correct format."); todo
         return obj;
     }
 
@@ -208,7 +217,6 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
             sb.Append(" @ ");
             sb.AppendLine(theme.Key.ToString());
         }
-
         return sb.ToString();
     }
 
@@ -217,14 +225,14 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     /// </summary>
     public void SetCurrentTheme()
     {
-        Console.WriteLine("SetCurrentTheme");
         if (Count == 0)
             return;
         //Big blessups to Abdullah Nabil
         //https://stackoverflow.com/questions/71883411/changing-windows-theme-in-c-sharp
         var process = new Process();
         process.StartInfo.FileName = "cmd.exe";
-        process.StartInfo.Arguments = $"/c '\u0022'{GetCurrentTheme()!.Value.Path}'\u0022'";
+        process.StartInfo.Arguments =
+            $"/c '\u0022'{GetThemeFor(TimeOnly.FromDateTime(DateTime.Now))!.Value.Path}'\u0022'";
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.UseShellExecute = true;
         process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -232,11 +240,13 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
         process.WaitForExit();
     }
 
+
     /// <summary>
-    ///     Gets the theme associated with the current time.
+    /// Gets the theme associated with the given time.
     /// </summary>
-    /// <returns>The Theme for the current time</returns>
-    public Theme? GetCurrentTheme()
+    /// <param name="time">The time</param>
+    /// <returns>The selected theme for the given time</returns>
+    public Theme? GetThemeFor(TimeOnly time)
     {
         switch (Count)
         {
@@ -246,27 +256,60 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
                 return Themes.Values.First();
             default:
             {
-                var now = TimeOnly.FromDateTime(DateTime.Now);
                 var keys = Themes.Keys.ToList();
                 var values = Themes.Values.ToList();
-                var index = keys.BinarySearch(now);
-                if (index < 0)
-                {
-                    index = ~index;
-                    //if the time is before the first time in the schedule, return the last theme
-                    //? ie now=2pm and schedule is 3pm-4pm; then the 4pm time is returned
-                    if (index == 0)
-                        return values.Last();
-                    //if the time is after the last time in the schedule, return the first theme
-                    //? ie now=5pm and schedule is 3pm-4pm; then the 3pm time is returned
-                    if (index == keys.Count)
-                        return values.First();
-                    //if the time is between two times in the schedule, return the theme associated with the earlier time
-                    //? ie now=3:30pm and schedule is 3pm-4pm; then the 3pm time is returned
+                var index = keys.BinarySearch(time);
+                if (index >= 0) return values[index];
+                index = ~index;
+                //if the time is before the first time in the schedule, return the last theme
+                //? ie now=2pm and schedule is 3pm-4pm; then the 4pm time is returned
+                if (index == 0)
+                    return values.Last();
+                //if the time is after the last time in the schedule, return the first theme
+                //? ie now=5pm and schedule is 3pm-4pm; then the 3pm time is returned
+                else if (index == keys.Count)
+                    return values.First();
+                //if the time is between two times in the schedule, return the theme associated with the earlier time
+                //? ie now=3:30pm and schedule is 3pm-4pm; then the 3pm time is returned
+                else
                     return values[index - 1];
-                }
-                return values[index];
             }
         }
     }
+
+    public KeyValuePair<TimeOnly, Theme> NextTheme()
+    {
+        if (Count == 0)
+            return Themes.First();
+        var keys = Themes.Keys.ToList();
+        var index = keys.BinarySearch(CurrentTime);
+        //mod by the length so that if it's the last theme, it loops back to the first
+        if (index >= 0) return Themes.ElementAt((index + 1) % keys.Count);
+        index = ~index;
+        if(index == keys.Count)
+            return Themes.First();
+        //no need to add 1 because the index is already the next theme (BinarySearch doc)
+        return Themes.ElementAt(~index % keys.Count);
+    }
+    
+    public KeyValuePair<TimeOnly,Theme> PreviousTheme()
+    {
+        if (Count == 0)
+            return Themes.First();
+        var keys = Themes.Keys.ToList();
+        var index = keys.BinarySearch(CurrentTime);
+        //what happens here is
+        //we subtract ine from the index to get the previous theme
+        //then we add the length of the list to it to make sure it's positive
+        //then we mod it by the length of the list to make sure it's in the range of the list
+        //this is done so that if it's the first theme, it loops back to the last; i.e. the previous theme
+        //? tl;dr the keys count cancel out and when it's zero it loops back to the last
+        if (index >= 0) return Themes.ElementAt((index - 1 + keys.Count) % keys.Count);
+        index = ~index;
+        if(index == 0)
+            return Themes.Last();
+        return Themes.ElementAt((index - 1 + keys.Count) % keys.Count);
+    }
+
+    public static TimeOnly CurrentTime => TimeOnly.FromDateTime(DateTime.Now);
 }

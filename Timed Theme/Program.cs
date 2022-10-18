@@ -1,60 +1,59 @@
 ﻿using Timed_Theme;
+using static Timed_Theme.ThemeSchedule;
 
 string themesPath = Config.ThemesPath;
 var conf = new Config();
-var themes =conf.ThemeConfigurations;
 conf.ThemeConfigurations.SetCurrentTheme();
 try
 {
-	var config = new FileSystemWatcher($"{themesPath}", Config.ConfigFilePath);
-	config.EnableRaisingEvents = true;
-	config.Changed += (sender, e) =>
-	{
-		themes = conf.ThemeConfigurations;
-		Console.WriteLine("Changed\n\n"+themes);
-		conf.ThemeConfigurations.SetCurrentTheme();
-	};
-	config.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName;
-	Console.WriteLine("Watching " + config.Filter + " file(s) in " + config.Path);
+    var config = new FileSystemWatcher($"{themesPath}", Config.ConfigFilePath);
+    config.EnableRaisingEvents = true;
+    config.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName;
+    Console.WriteLine("Watching " + config.Filter + " file(s) in " + config.Path);
+    config.Changed += UpdateConfiguration;
+    config.Renamed += UpdateConfiguration;
+    Wait();
 
+    void Wait()
+    {
+        while (true)
+            if (Console.ReadLine() == "exit")
+                break;
+            else
+            {
+                Console.WriteLine("Type 'exit' to exit");
+               var next =(conf.ThemeConfigurations.NextTheme());
+                Console.WriteLine($"Next theme starts at {next.Key}");
+                Console.WriteLine("time until switch " + (next.Key-CurrentTime));
+            }
+    }
 
-	config.Changed += (object sender, FileSystemEventArgs e) =>
-	{
-		if(e.Name != "config.csc")
-			Rename(e);
-		else if(e.Name == "config.csc")
-			reconfig();
-	};
+    void UpdateConfiguration(object sender, FileSystemEventArgs e)
+    {
+        if (e.Name != "config.csc")
+        {
+            File.Copy(e.FullPath, Config.ConfigFilePath);
+            File.Delete(e.FullPath);
+        }
+        else if (e.Name == "config.csc")
+            conf.Refresh();
+        conf.ThemeConfigurations.SetCurrentTheme();
+    }
 
-	void Rename(FileSystemEventArgs e)
-	{
-		File.Copy(e.FullPath, Config.ConfigFilePath);
-		File.Delete(e.FullPath);
-	}
-
-	void reconfig()
-	{
-	}
-
-	void switchTheme()
-	{
-	}
-	
-	
-	async Task ScheduleAction(Action action, TimeOnly executionTime)
-	{
-		try
-		{
-			await Task.Delay(TimeOnly.FromDateTime(DateTime.Now) - executionTime);
-			action();
-		}
-		catch(Exception)
-		{
-			// Something went wrong
-		}
-	}
+    async Task ScheduleAction(Action action, TimeOnly executionTime)
+    {
+        try
+        {
+            await Task.Delay(TimeOnly.FromDateTime(DateTime.Now) - executionTime);
+            action();
+        }
+        catch (Exception)
+        {
+            // Something went wrong
+        }
+    }
 }
-catch(ArgumentException e)
+catch (ArgumentException e)
 {
-	Console.Error.WriteLine(e);
+    Console.Error.WriteLine(e);
 }
