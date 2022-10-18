@@ -6,10 +6,11 @@ namespace Timed_Theme;
 
 internal class Config
 {
-    public static readonly string ThemesPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\Themes";
+    public static readonly string ThemesPath =
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\Themes";
 
     public static readonly string ConfigFilePath = $@"{ThemesPath}\config.csc";
-    public ThemeSchedule ThemeConfigurations { get; }
+    public ThemeSchedule ThemeConfigurations { get; private set; }
 
     public Config()
     {
@@ -87,13 +88,12 @@ internal class Config
         var themes = GetUsersThemes(true)
             .Zip(GetUsersThemes(false))
             .ToDictionary(tuple => tuple.First, tuple => tuple.Second);
-
+        var dayOrNight = (int i) => (i == 0 ? "day theme" : "night theme");
         for (int i = 0; i < themeQty; i++)
         {
             var themeMode = themeQty == 2
                 ?
-                //if there are 2 themes; select for 'day' then 'night'
-                i == 0 ? "day theme" : "night theme"
+dayOrNight(i)
                 //else show which theme number they're now setting for
                 : $"theme {i + 1}";
             var name = SetName();
@@ -252,7 +252,8 @@ internal class Config
     {
         Console.WriteLine($"Enter the time you want to change to {themeMode} (hh:mm:ss): ");
         var time = InputTime();
-        Console.WriteLine($"Is {time.ToString("HH:mm")} ({time}) the correct time for {themeMode} to be activated? (y/N): ");
+        Console.WriteLine(
+            $"Is {time.ToString("HH:mm")} ({time}) the correct time for {themeMode} to be activated? (y/N): ");
         var confirm = Console.ReadLine();
         //todo: add yes option in 'if'
         if (confirm != null && confirm.Equals("y", StringComparison.OrdinalIgnoreCase))
@@ -305,7 +306,8 @@ internal class Config
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.CursorTop--;
                     Console.CursorLeft = 0;
-                    Console.WriteLine("Please use the up and down arrows to adjust the hour, and the left and right arrows to adjust the minute.");
+                    Console.WriteLine(
+                        "Please use the up and down arrows to adjust the hour, and the left and right arrows to adjust the minute.");
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     break;
             }
@@ -344,8 +346,13 @@ internal class Config
         return themes;
     }
 
-    private static bool isConfigured()
+    private static bool IsConfigured()
     {
         return File.Exists(ConfigFilePath);
     }
+
+    /// <summary>
+    /// Refreshes the theme schedule based on changes to the config file.
+    /// </summary>
+    public void Refresh() => ThemeConfigurations = ThemeSchedule.Parse(ConfigFilePath);
 }

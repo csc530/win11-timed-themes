@@ -222,15 +222,14 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
             return;
         //Big blessups to Abdullah Nabil
         //https://stackoverflow.com/questions/71883411/changing-windows-theme-in-c-sharp
-        var tokyo1 = "call " + '\u0022' + GetCurrentTheme()!.Value.Path + '\u0022';
         var process = new Process();
         process.StartInfo.FileName = "cmd.exe";
-        process.StartInfo.Arguments = "/c " + tokyo1;
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.CreateNoWindow = false;
-        process.StartInfo.Verb = "runas";
+        process.StartInfo.Arguments = $"/c '\u0022'{GetCurrentTheme()!.Value.Path}'\u0022'";
+        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.UseShellExecute = true;
+        process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
         process.Start();
-        process.Dispose();
+        process.WaitForExit();
     }
 
     /// <summary>
