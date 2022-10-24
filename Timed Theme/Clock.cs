@@ -5,9 +5,17 @@
 		private TimeOnly _time = TimeOnly.MinValue;
 		private Timer _timer;
 
+		private Dictionary<TimeOnly, EventHandler<TimeOnly>> Alarms;
+
 		public event EventHandler<TickEventArgs>? OnTickHandler;
 		// * made it compatible with TimerCallback
 		protected virtual void OnTick(object? state) => OnTickHandler?.Invoke(this, generateTickEventArgs());
+		private TimeSpan _secondSpan = TimeSpan.FromSeconds(1);
+		protected void Tick(object? state)
+		{
+			Time = Time.Add(_secondSpan);
+			OnTick(state ?? this);
+		}
 		public int TickInterval { get; set; }//make setter
 		public class TickEventArgs : EventArgs
 		{
@@ -30,6 +38,9 @@
 				TimeOnly prev = _time;
 				_time = value;
 				OnChange(prev);
+				Console.WriteLine("Time changed");
+				Alarms.TryGetValue(_time, out var alarm);
+				alarm?.Invoke(this, _time);
 			}
 		}
 
@@ -38,6 +49,8 @@
 		public Clock()
 		{
 			_timer = new(OnTick, null, Timeout.Infinite, Timeout.Infinite);
+			Alarms = new();
+			TickInterval = 1;
 		}
 
 		public Clock(String time) : this()
@@ -139,9 +152,38 @@
 		}
 		#endregion
 
+		#region Alarms
+		void AddAlarm(TimeOnly time, Action<TimeOnly> action)
+		{
+			Alarms.Add(time, (sender, time) => action(time));
+		}
+
+		void RemoveAlarm(TimeOnly time)
+		{
+			Alarms.Remove(time);
+		}
+
+		void RemoveAllAlarms()
+		{
+			Alarms.Clear();
+		}
+
+		List<TimeOnly> GetAlarms()
+		{
+			return Alarms.Keys.ToList();
+		}
+
+		#endregion
+
+		public void SyncTime()
+		{
+			Time = TimeOnly.FromDateTime(DateTime.Now);
+		}
+
 		public void start()
 		{
-			_timer = new(OnTick, null, 0, TickInterval * 1000);
+			SyncTime();
+			_timer = new(Tick, null, 0, TickInterval * 1000);
 		}
 		public void stop()
 		{

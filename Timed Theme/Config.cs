@@ -15,7 +15,7 @@ internal class Config
     public Config()
     {
         ThemeConfigurations = new ThemeSchedule();
-        if (File.Exists(ConfigFilePath))
+        if(File.Exists(ConfigFilePath))
             ThemeConfigurations = ThemeSchedule.Parse(File.ReadAllText(ConfigFilePath));
         else
             Configure();
@@ -27,9 +27,9 @@ internal class Config
     /// </summary>
     public void Configure()
     {
-        if (!IsWin11())
+        if(!IsWin11())
             throw new PlatformNotSupportedException("This app is only supported on Windows 11 and 10.");
-        if (true)
+        if(true)
         {
             Console.WriteLine("How many themes would you like to set:");
             Console.WriteLine("1. Day and night (2 themes)");
@@ -37,7 +37,7 @@ internal class Config
             Console.WriteLine("3. Exit");
             Console.Write("Enter your choice: ");
             string? choice = Console.ReadLine();
-            switch (choice)
+            switch(choice)
             {
                 case "1":
                     ConfigThemes(2);
@@ -46,7 +46,7 @@ internal class Config
                     Console.WriteLine("How many themes would you like to set? ");
                     var input = Console.ReadLine();
                     int n;
-                    while (!int.TryParse(input, out n))
+                    while(!int.TryParse(input, out n))
                     {
                         //todo go back and add only not newlining
                         Console.WriteLine("Invalid entry\n");
@@ -84,12 +84,14 @@ internal class Config
     /// <param name="themeQty">The number of themes to setup in the schedule</param>
     private void ConfigThemes(int themeQty)
     {
+        //Remove current config from RAM but not Disk thus prevents duplicate key entries
+        ThemeConfigurations.Clear();
         //? dictionary of themes = <fullpath,filename>
         var themes = GetUsersThemes(true)
             .Zip(GetUsersThemes(false))
             .ToDictionary(tuple => tuple.First, tuple => tuple.Second);
         var dayOrNight = (int i) => (i == 0 ? "day theme" : "night theme");
-        for (int i = 0; i < themeQty; i++)
+        for(int i = 0; i < themeQty; i++)
         {
             var themeMode = themeQty == 2
                 ?
@@ -115,15 +117,15 @@ dayOrNight(i)
         //todo fix no logic
         Console.WriteLine("Would you like to set a name for this theme (Y/n)? ");
         var continueNaming = Console.ReadLine();
-        if (continueNaming == null || !continueNaming.Equals("n", StringComparison.OrdinalIgnoreCase) ||
+        if(continueNaming == null || !continueNaming.Equals("n", StringComparison.OrdinalIgnoreCase) ||
             !continueNaming.Equals("no", StringComparison.OrdinalIgnoreCase))
         {
             string? name = string.Empty;
-            while (string.IsNullOrWhiteSpace(name))
+            while(string.IsNullOrWhiteSpace(name))
             {
                 Console.WriteLine("Theme name: ");
                 name = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(name))
+                if(string.IsNullOrWhiteSpace(name))
                     Console.WriteLine("Invalid name");
             }
 
@@ -153,7 +155,7 @@ dayOrNight(i)
             settings.Close();
             return true;
         }
-        catch (UnauthorizedAccessException e)
+        catch(UnauthorizedAccessException e)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine("Could not save settings. Please run the program as administrator.");
@@ -161,7 +163,7 @@ dayOrNight(i)
             Console.Error.WriteLine(e);
             return false;
         }
-        catch (PathTooLongException e)
+        catch(PathTooLongException e)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine("Could not save settings. File path too long.");
@@ -169,7 +171,7 @@ dayOrNight(i)
             Console.Error.WriteLine(e);
             return false;
         }
-        catch (Exception e)
+        catch(Exception e)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine("Error: Could not save settings.");
@@ -198,7 +200,7 @@ dayOrNight(i)
         var ver = os.Version.Major;
 
         //check for Windows 10+
-        if (pid == PlatformID.Win32NT && ver >= 10)
+        if(pid == PlatformID.Win32NT && ver >= 10)
         {
             Console.WriteLine("App compatible: Windows 10 or higher detected");
             return true;
@@ -225,13 +227,13 @@ dayOrNight(i)
         Console.Write("Select a theme by entering its numbered position: ");
         var select = Console.ReadLine();
         var isNum = int.TryParse(select, out var index);
-        if (isNum && themes.Count > --index)
+        if(isNum && themes.Count > --index)
         {
             //todo: add input for specific theme text and make a prompt/console wrinting class
             Console.Write($"Set {themes[index]} as theme? (y/N): ");
             var confirm = Console.ReadLine();
             Console.WriteLine();
-            if (confirm != null && confirm.Equals("y", StringComparison.OrdinalIgnoreCase))
+            if(confirm != null && confirm.Equals("y", StringComparison.OrdinalIgnoreCase))
                 return themes[index];
             else
                 return GetThemeInput(themes);
@@ -256,7 +258,7 @@ dayOrNight(i)
             $"Is {time.ToString("HH:mm")} ({time}) the correct time for {themeMode} to be activated? (y/N): ");
         var confirm = Console.ReadLine();
         //todo: add yes option in 'if'
-        if (confirm != null && confirm.Equals("y", StringComparison.OrdinalIgnoreCase))
+        if(confirm != null && confirm.Equals("y", StringComparison.OrdinalIgnoreCase))
             return time;
         return SetTime(themeMode);
     }
@@ -286,9 +288,9 @@ dayOrNight(i)
         //? print initial time to console
         ToggleTime(null, new(clock.Time, clock.Time));
         var key = new ConsoleKeyInfo();
-        while (key.Key != ConsoleKey.Enter)
+        while(key.Key != ConsoleKey.Enter)
         {
-            switch (key.Key)
+            switch(key.Key)
             {
                 case ConsoleKey.UpArrow:
                     clock.increment(1, ClockUnit.Minutes);
@@ -334,8 +336,8 @@ dayOrNight(i)
             var theme = new DirectoryInfo(directory).GetFiles("*.theme", SearchOption.TopDirectoryOnly);
             themes.Add(fullPath ? theme[0].FullName : theme[0].Name);
         });
-        foreach (string file in Directory.GetFiles(ThemesPath, "*.theme"))
-            if (fullPath)
+        foreach(string file in Directory.GetFiles(ThemesPath, "*.theme"))
+            if(fullPath)
                 themes.Add(file);
             else
             {
