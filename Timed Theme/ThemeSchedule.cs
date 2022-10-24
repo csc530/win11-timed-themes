@@ -131,19 +131,20 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
 
     public void CopyTo(KeyValuePair<TimeOnly, Theme>[] array, int arrayIndex)
     {
-        if (array.Length - arrayIndex < Themes.Count)
+        if(array.Length - arrayIndex < Themes.Count)
             throw new ArgumentException("The array is too small to copy the themes to.");
-        else if (arrayIndex < 0)
+        else if(arrayIndex < 0)
             throw new ArgumentException("The array index cannot be negative.");
-        else if (arrayIndex >= array.Length) throw new ArgumentException("The array index is too large.");
+        else if(arrayIndex >= array.Length)
+            throw new ArgumentException("The array index is too large.");
         else
-            for (var i = arrayIndex; i < array.Length; i++)
+            for(var i = arrayIndex; i < array.Length; i++)
                 array[i] = new KeyValuePair<TimeOnly, Theme>(Keys.ElementAt(i), Values.ElementAt(i));
     }
 
     public bool Remove(KeyValuePair<TimeOnly, Theme> item)
     {
-        if (Themes.ContainsKey(item.Key) && Themes[item.Key] == item.Value)
+        if(Themes.ContainsKey(item.Key) && Themes[item.Key] == item.Value)
             return Themes.Remove(item.Key);
         return false;
     }
@@ -156,7 +157,7 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     public static ThemeSchedule Parse(string text)
     {
         var obj = new ThemeSchedule();
-        if (!obj.PerfectParse(text))
+        if(!obj.PerfectParse(text))
             return obj;
         //throw new ArgumentException("The string is not in the correct format."); todo
         return obj;
@@ -167,12 +168,12 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
         var lines = text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         var values = new List<KeyValuePair<TimeOnly, Theme>>();
         string? name = null;
-        foreach (var line in lines)
+        foreach(var line in lines)
         {
             var parts = line.Split('@', StringSplitOptions.TrimEntries);
-            if (parts.Length == 1 && line.StartsWith("[["))
+            if(parts.Length == 1 && line.StartsWith("[["))
                 name = line.Substring(2, line.Length - 4);
-            else if (parts.Length != 2)
+            else if(parts.Length != 2)
                 return false;
             else
                 values.Add(KeyValuePair.Create(TimeOnly.Parse(parts[1]),
@@ -180,7 +181,7 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
         }
 
         //todo add option for overwrite or no
-        foreach (var pair in values)
+        foreach(var pair in values)
             Add(pair);
         return true;
     }
@@ -209,9 +210,9 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     public string Print(bool withNames = false)
     {
         var sb = new StringBuilder();
-        foreach (var theme in Themes)
+        foreach(var theme in Themes)
         {
-            if (withNames)
+            if(withNames)
                 sb.AppendLine($"[[{theme.Value.Name}]]");
             sb.Append(theme.Value.Path);
             sb.Append(" @ ");
@@ -225,7 +226,7 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     /// </summary>
     public void SetCurrentTheme()
     {
-        if (Count == 0)
+        if(Count == 0)
             return;
         //Big blessups to Abdullah Nabil
         //https://stackoverflow.com/questions/71883411/changing-windows-theme-in-c-sharp
@@ -248,7 +249,7 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
     /// <returns>The selected theme for the given time</returns>
     public Theme? GetThemeFor(TimeOnly time)
     {
-        switch (Count)
+        switch(Count)
         {
             case 0:
                 return null;
@@ -259,15 +260,16 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
                 var keys = Themes.Keys.ToList();
                 var values = Themes.Values.ToList();
                 var index = keys.BinarySearch(time);
-                if (index >= 0) return values[index];
+                if(index >= 0)
+                    return values[index];
                 index = ~index;
                 //if the time is before the first time in the schedule, return the last theme
                 //? ie now=2pm and schedule is 3pm-4pm; then the 4pm time is returned
-                if (index == 0)
+                if(index == 0)
                     return values.Last();
                 //if the time is after the last time in the schedule, return the first theme
                 //? ie now=5pm and schedule is 3pm-4pm; then the 3pm time is returned
-                else if (index == keys.Count)
+                else if(index == keys.Count)
                     return values.First();
                 //if the time is between two times in the schedule, return the theme associated with the earlier time
                 //? ie now=3:30pm and schedule is 3pm-4pm; then the 3pm time is returned
@@ -279,22 +281,23 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
 
     public KeyValuePair<TimeOnly, Theme> NextTheme()
     {
-        if (Count == 0)
+        if(Count == 0)
             return Themes.First();
         var keys = Themes.Keys.ToList();
         var index = keys.BinarySearch(CurrentTime);
         //mod by the length so that if it's the last theme, it loops back to the first
-        if (index >= 0) return Themes.ElementAt((index + 1) % keys.Count);
+        if(index >= 0)
+            return Themes.ElementAt((index + 1) % keys.Count);
         index = ~index;
         if(index == keys.Count)
             return Themes.First();
         //no need to add 1 because the index is already the next theme (BinarySearch doc)
-        return Themes.ElementAt(~index % keys.Count);
+        return Themes.ElementAt(index % keys.Count);
     }
-    
-    public KeyValuePair<TimeOnly,Theme> PreviousTheme()
+
+    public KeyValuePair<TimeOnly, Theme> PreviousTheme()
     {
-        if (Count == 0)
+        if(Count == 0)
             return Themes.First();
         var keys = Themes.Keys.ToList();
         var index = keys.BinarySearch(CurrentTime);
@@ -304,7 +307,8 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
         //then we mod it by the length of the list to make sure it's in the range of the list
         //this is done so that if it's the first theme, it loops back to the last; i.e. the previous theme
         //? tl;dr the keys count cancel out and when it's zero it loops back to the last
-        if (index >= 0) return Themes.ElementAt((index - 1 + keys.Count) % keys.Count);
+        if(index >= 0)
+            return Themes.ElementAt((index - 1 + keys.Count) % keys.Count);
         index = ~index;
         if(index == 0)
             return Themes.Last();

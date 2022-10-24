@@ -11,3 +11,4 @@ This is a work in progress and is not yet ready for use.
 
 - When the theme is being switched a settings window will open or it will switch the theme in an open settings windows.
   Sorry for the annoyance windows right🙃
+  
