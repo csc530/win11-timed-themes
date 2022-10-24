@@ -38,7 +38,6 @@
 				TimeOnly prev = _time;
 				_time = value;
 				OnChange(prev);
-				Console.WriteLine("Time changed");
 				Alarms.TryGetValue(_time, out var alarm);
 				alarm?.Invoke(this, _time);
 			}
@@ -153,22 +152,22 @@
 		#endregion
 
 		#region Alarms
-		void AddAlarm(TimeOnly time, Action<TimeOnly> action)
+		public void AddAlarm(TimeOnly time, Action<TimeOnly> action)
 		{
 			Alarms.Add(time, (sender, time) => action(time));
 		}
 
-		void RemoveAlarm(TimeOnly time)
+		public void RemoveAlarm(TimeOnly time)
 		{
 			Alarms.Remove(time);
 		}
 
-		void RemoveAllAlarms()
+		public void ClearAlarms()
 		{
 			Alarms.Clear();
 		}
 
-		List<TimeOnly> GetAlarms()
+		public List<TimeOnly> GetAlarms()
 		{
 			return Alarms.Keys.ToList();
 		}
