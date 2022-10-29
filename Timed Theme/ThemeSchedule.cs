@@ -232,8 +232,7 @@ internal class ThemeSchedule : IDictionary<TimeOnly, Theme>
 		//https://stackoverflow.com/questions/71883411/changing-windows-theme-in-c-sharp
 		var process = new Process();
 		process.StartInfo.FileName = "cmd.exe";
-		process.StartInfo.Arguments =
-			$"/c '\u0022'{GetThemeFor(TimeOnly.FromDateTime(DateTime.Now))!.Value.Path}'\u0022'";
+		process.StartInfo.Arguments = "/c \u0022{GetThemeFor(CurrentTime)!.Value.Path}\u0022";
 		process.StartInfo.CreateNoWindow = true;
 		process.StartInfo.UseShellExecute = true;
 		process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;

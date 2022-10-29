@@ -8,8 +8,8 @@ internal class Config
 {
 	public static readonly string ThemesPath =
 		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\Themes";
-
-	public static readonly string ConfigFilePath = $@"{ThemesPath}\config.csc";
+	public const string ConfigFileName = "config.csc";
+	public static readonly string ConfigFilePath = $@"{ThemesPath}\{ConfigFileName}";
 	public ThemeSchedule ThemeConfigurations { get; private set; }
 
 	public Config()
@@ -356,5 +356,6 @@ dayOrNight(i)
 	/// <summary>
 	/// Refreshes the theme schedule based on changes to the config file.
 	/// </summary>
-    public void Refresh() => ThemeConfigurations = ThemeSchedule.Parse(ConfigFilePath);
+	/// <returns>The refrence to the new themeschedule of the config</returns>
+	public ThemeSchedule Refresh() => ThemeConfigurations = ThemeSchedule.Parse(File.ReadAllText(ConfigFilePath));
 }
