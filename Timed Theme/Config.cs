@@ -293,23 +293,22 @@ dayOrNight(i)
 			switch(key.Key)
 			{
 				case ConsoleKey.UpArrow:
-					clock.increment(1, ClockUnit.Minutes);
+					clock.Increment(0, 1, 0);
 					break;
 				case ConsoleKey.DownArrow:
-					clock.increment(-1, ClockUnit.Minutes);
+					clock.Increment(0, -1, 0);
 					break;
 				case ConsoleKey.LeftArrow:
-					clock.increment(-1, ClockUnit.Hours);
+					clock.Increment(-1, 0, 0);
 					break;
 				case ConsoleKey.RightArrow:
-					clock.increment(1, ClockUnit.Hours);
+					clock.Increment(1, 0, 0);
 					break;
 				default:
 					Console.ForegroundColor = ConsoleColor.Red;
 					Console.CursorTop--;
 					Console.CursorLeft = 0;
-					Console.WriteLine(
-						"Please use the up and down arrows to adjust the hour, and the left and right arrows to adjust the minute.");
+					Console.WriteLine("Please use the up and down arrows to adjust the hour, and the left and right arrows to adjust the minute.");
 					Console.ForegroundColor = ConsoleColor.Cyan;
 					break;
 			}
